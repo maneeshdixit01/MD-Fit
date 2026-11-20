@@ -1,0 +1,18 @@
+{
+  "name": "md-fit-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MD Fit activity tracker Android app",
+  "scripts": {
+    "build": "echo 'Static web app ready'",
+    "android:sync": "cap sync android",
+    "android:open": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/core": "^6.2.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.1"
+  }
+}
