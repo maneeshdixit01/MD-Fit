@@ -1,0 +1,119 @@
+name: Build MD Fit Android (APK & AAB)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Add and Sync Capacitor Android
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+          npx cap sync android
+
+      - name: Configure SDK 35, Versioning & GPS Permissions
+        run: |
+          python3 - << 'EOF'
+          import re, pathlib
+
+          # 1. Update compileSdkVersion and targetSdkVersion to 35 for Play Store compliance
+          vars_file = pathlib.Path("android/variables.gradle")
+          if vars_file.exists():
+              txt = vars_file.read_text()
+              txt = re.sub(r"compileSdkVersion\s*=\s*\d+", "compileSdkVersion = 35", txt)
+              txt = re.sub(r"targetSdkVersion\s*=\s*\d+", "targetSdkVersion = 35", txt)
+              vars_file.write_text(txt)
+
+          # 2. Update versionCode and versionName in app/build.gradle
+          gradle_file = pathlib.Path("android/app/build.gradle")
+          if gradle_file.exists():
+              txt = gradle_file.read_text()
+              txt = re.sub(r"versionCode\s+\d+", "versionCode 1", txt)
+              txt = re.sub(r'versionName\s+"[^"]+"', 'versionName "3.2.0"', txt)
+              gradle_file.write_text(txt)
+
+          # 3. Inject GPS & Location permissions into AndroidManifest.xml
+          manifest_file = pathlib.Path("android/app/src/main/AndroidManifest.xml")
+          if manifest_file.exists():
+              txt = manifest_file.read_text()
+              perms = [
+                  '    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />',
+                  '    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
+                  '    <uses-feature android:name="android.hardware.location.gps" android:required="false" />',
+              ]
+              to_add = [p for p in perms if p.strip() not in txt]
+              if to_add:
+                  txt = txt.replace("</manifest>", "\n".join(to_add) + "\n</manifest>")
+                  manifest_file.write_text(txt)
+          EOF
+
+      - name: Build Debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Build Release APK & AAB
+        id: release_build
+        working-directory: android
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > app/release-key.jks
+            ./gradlew assembleRelease bundleRelease \
+              -Pandroid.injected.signing.store.file=$(pwd)/app/release-key.jks \
+              -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
+              -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+              -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No signing secrets found. Building unsigned release AAB..."
+            ./gradlew bundleRelease
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MD-Fit-Debug-APK
+          path: android/app/build/outputs/apk/debug/*.apk
+
+      - name: Upload Signed Release APK
+        if: steps.release_build.outputs.signed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MD-Fit-Release-APK
+          path: android/app/build/outputs/apk/release/*.apk
+
+      - name: Upload Release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: MD-Fit-Release-AAB
+          path: android/app/build/outputs/bundle/release/*.aab
