@@ -1,0 +1,8 @@
+{
+  "appId": "com.md.fit",
+  "appName": "MD Fit",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}

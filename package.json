@@ -1,0 +1,16 @@
+{
+  "name": "md-fit",
+  "version": "3.2.0",
+  "description": "MD Fit \u2014 Move, Track, Improve",
+  "private": true,
+  "scripts": {
+    "sync": "npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/android": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}

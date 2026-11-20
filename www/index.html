@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#FF5A1F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>MD Fit — Move Better</title>
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --bg:#F4F6FA;
+  --surface:#FFFFFF;
+  --surface2:#F8FAFC;
+  --line:#E6EBF2;
+  --text:#0F172A;
+  --muted:#64748B;
+  --primary:#FF5A1F;
+  --primary-dark:#E04810;
+  --primary-grad:linear-gradient(135deg,#FF5A1F 0%,#FF8A00 100%);
+  --primary-soft:#FFF1EB;
+  --success:#10B981;
+  --success-soft:#ECFDF5;
+  --danger:#EF4444;
+  --danger-soft:#FEF2F2;
+  --shadow:0 6px 20px rgba(15,23,42,.05);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior-y:none;
+}
+button,input{font:inherit}
+button{user-select:none}
+.app{
+  max-width:560px;
+  min-height:100vh;
+  margin:auto;
+  background:var(--bg);
+  padding-bottom:calc(88px + env(safe-area-inset-bottom));
+}
+header{
+  position:sticky;
+  top:0;
+  z-index:900;
+  padding:calc(14px + env(safe-area-inset-top)) 18px 12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:rgba(244,246,250,.88);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  border-bottom:1px solid rgba(230,235,242,.7);
+}
+.brand{font-size:24px;font-weight:900;letter-spacing:-1px;color:var(--text)}
+.brand span{color:var(--primary)}
+.tagline{font-size:10px;color:var(--muted);letter-spacing:1.4px;font-weight:700;margin-top:1px}
+.avatar{
+  height:40px;width:40px;border-radius:50%;
+  display:grid;place-items:center;
+  background:var(--primary-grad);
+  color:#FFF;font-weight:800;font-size:16px;
+  box-shadow:0 4px 12px rgba(255,90,31,.28);
+  cursor:pointer;
+}
+.page{display:none;padding:12px 15px 6px;animation:fadeIn .2s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.topline{display:flex;justify-content:space-between;align-items:center;margin:4px 2px 14px}
+.topline h1{font-size:22px;font-weight:800;letter-spacing:-.5px;margin:0}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+
+.hero{
+  background:var(--primary-grad);
+  color:#FFF;
+  border-radius:24px;
+  padding:20px;
+  position:relative;
+  overflow:hidden;
+  box-shadow:0 12px 28px rgba(255,90,31,.25);
+}
+.hero:before,.hero:after{
+  content:"";position:absolute;border-radius:50%;pointer-events:none;
+}
+.hero:before{width:170px;height:170px;right:-45px;top:-55px;background:rgba(255,255,255,.14)}
+.hero:after{width:110px;height:110px;right:40px;bottom:-55px;background:rgba(255,255,255,.1)}
+.eyebrow{font-size:10px;letter-spacing:1.6px;color:rgba(255,255,255,.92);font-weight:800}
+.hero h1{font-size:28px;line-height:1.12;margin:8px 0 6px;letter-spacing:-.8px;color:#FFF}
+.hero p{font-size:12.5px;color:rgba(255,255,255,.88);line-height:1.5;margin:0;max-width:300px}
+.week-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:18px;position:relative;z-index:1}
+.metric{
+  background:rgba(255,255,255,.18);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.24);
+  border-radius:14px;
+  padding:11px 9px;
+}
+.metric b{font-size:17px;display:block;letter-spacing:-.4px;color:#FFF}
+.metric span{font-size:10px;color:rgba(255,255,255,.88);font-weight:600}
+
+.card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:22px;
+  padding:17px;
+  margin-top:14px;
+  box-shadow:var(--shadow);
+}
+.cardhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.cardhead h2{font-size:16px;font-weight:800;margin:0;color:var(--text)}
+.tag{
+  font-size:10px;font-weight:800;letter-spacing:.4px;
+  color:var(--primary);background:var(--primary-soft);
+  padding:5px 10px;border-radius:30px;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.tag.live{color:var(--success);background:var(--success-soft)}
+.tag.live:before{
+  content:"";width:7px;height:7px;border-radius:50%;background:var(--success);
+  animation:pulse 1.4s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+
+.activity-types{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:14px 0}
+.type{
+  border:1.5px solid var(--line);
+  background:var(--surface2);
+  border-radius:16px;
+  color:var(--muted);
+  padding:11px 6px;
+  font-size:12px;font-weight:700;
+  cursor:pointer;
+  transition:all .18s ease;
+}
+.type strong{display:block;font-size:22px;margin-bottom:4px}
+.type.selected{
+  border-color:var(--primary);
+  background:var(--primary-soft);
+  color:var(--primary);
+  box-shadow:0 4px 12px rgba(255,90,31,.12);
+}
+
+.map-wrap{
+  height:215px;border-radius:16px;overflow:hidden;
+  background:#EEF2F7;border:1px solid var(--line);position:relative;
+}
+.map-placeholder{
+  height:100%;display:grid;place-items:center;text-align:center;
+  padding:20px;color:var(--muted);font-size:12px;line-height:1.55;
+}
+.map-placeholder b{display:block;color:var(--text);font-size:14px;margin-bottom:5px}
+#map{height:100%;width:100%;display:none}
+
+.record-number{text-align:center;padding:16px 0 6px}
+.record-number b{
+  font-size:54px;font-weight:900;letter-spacing:-2px;
+  color:var(--text);font-variant-numeric:tabular-nums;line-height:1;
+}
+.record-number span{
+  display:block;font-size:10px;letter-spacing:2px;
+  color:var(--muted);font-weight:700;margin-top:6px;
+}
+.three-stats{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  text-align:center;padding:12px 0 16px;
+  margin:6px 0 12px;
+  background:var(--surface2);
+  border-radius:16px;
+  border:1px solid var(--line);
+}
+.three-stats>div{position:relative}
+.three-stats>div:not(:last-child):after{
+  content:"";position:absolute;right:0;top:15%;height:70%;width:1px;background:var(--line);
+}
+.three-stats b{display:block;font-size:17px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
+.three-stats span{font-size:10px;color:var(--muted);font-weight:600}
+
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{
+  border:0;border-radius:14px;padding:14px 12px;
+  font-size:12px;font-weight:800;letter-spacing:.3px;
+  cursor:pointer;transition:transform .12s ease,opacity .15s ease;
+}
+.btn:active:not(:disabled){transform:scale(.97)}
+.primary{
+  background:var(--primary-grad);color:#FFF;
+  box-shadow:0 6px 16px rgba(255,90,31,.28);
+}
+.secondary{
+  background:var(--surface2);color:var(--text);
+  border:1.5px solid var(--line);
+}
+.danger{
+  background:var(--danger-soft);color:var(--danger);
+  border:1.5px solid #FECACA;
+}
+.btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+
+.disclaimer{font-size:10.5px;color:var(--muted);line-height:1.5;margin:12px 2px 0}
+.section-title{display:flex;justify-content:space-between;align-items:center;margin:22px 3px 10px}
+.section-title h2{font-size:16px;font-weight:800;margin:0}
+.text-btn{border:0;background:none;color:var(--primary);font-size:11px;font-weight:800;cursor:pointer}
+
+.activity-item{
+  display:flex;align-items:center;gap:12px;
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:16px;padding:13px;margin-bottom:9px;
+  box-shadow:0 2px 10px rgba(15,23,42,.03);
+}
+.act-icon{
+  width:44px;height:44px;border-radius:14px;
+  background:var(--primary-soft);
+  display:grid;place-items:center;font-size:21px;flex-shrink:0;
+}
+.act-body{flex:1;min-width:0}
+.act-body b{font-size:14px;color:var(--text)}
+.act-body small{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+.act-distance{font-size:15px;font-weight:900;color:var(--text);white-space:nowrap}
+
+.empty{
+  padding:24px 18px;text-align:center;
+  background:var(--surface);border:1.5px dashed #CBD5E1;
+  border-radius:18px;color:var(--muted);font-size:12.5px;line-height:1.6;
+}
+.quick-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.quick{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:18px;padding:15px;box-shadow:var(--shadow);
+}
+.quick .emoji{
+  width:38px;height:38px;border-radius:12px;
+  background:var(--primary-soft);
+  display:grid;place-items:center;font-size:19px;
+}
+.quick b{display:block;font-size:20px;font-weight:900;margin-top:10px;color:var(--text)}
+.quick span{font-size:11px;color:var(--muted);font-weight:600}
+
+.progress-track{height:10px;background:#E2E8F0;border-radius:20px;overflow:hidden;margin-top:12px}
+.progress-fill{height:100%;width:0;background:var(--primary-grad);border-radius:20px;transition:width .4s ease}
+
+.profilebox{text-align:center;padding:24px 18px}
+.bigavatar{
+  width:74px;height:74px;border-radius:50%;margin:0 auto 12px;
+  background:var(--primary-grad);color:#FFF;
+  display:grid;place-items:center;font-size:29px;font-weight:900;
+  box-shadow:0 8px 20px rgba(255,90,31,.28);
+}
+.profilebox h2{margin:0;font-size:20px;font-weight:800}
+.profilebox p{margin:5px 0 0;color:var(--muted);font-size:12.5px}
+
+.field{
+  width:100%;padding:12px 13px;border-radius:13px;
+  background:var(--surface2);border:1.5px solid var(--line);
+  color:var(--text);margin:6px 0 12px;outline:none;
+  transition:border-color .15s ease,background .15s ease;
+}
+.field:focus{border-color:var(--primary);background:#FFF}
+label{font-size:11.5px;font-weight:700;color:var(--muted);display:block;margin-top:6px}
+
+nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:min(560px,100%);
+  display:grid;grid-template-columns:repeat(4,1fr);
+  background:rgba(255,255,255,.94);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  border-top:1px solid var(--line);
+  padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+  z-index:1000;
+  box-shadow:0 -4px 20px rgba(15,23,42,.05);
+}
+nav button{
+  background:none;border:0;color:var(--muted);
+  font-size:10px;font-weight:700;padding:5px 4px;
+  cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;gap:4px;border-radius:12px;
+  transition:color .15s ease,background .15s ease;
+}
+nav button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
+nav button.active{color:var(--primary);background:var(--primary-soft)}
+
+.toast{
+  position:fixed;z-index:2000;bottom:calc(88px + env(safe-area-inset-bottom));
+  left:50%;transform:translateX(-50%);
+  background:#0F172A;color:#FFF;
+  padding:11px 18px;border-radius:30px;
+  font-size:12px;font-weight:700;display:none;
+  width:max-content;max-width:90%;text-align:center;
+  box-shadow:0 10px 24px rgba(15,23,42,.25);
+}
+@media(min-width:580px){
+  body{padding:18px 0}
+  .app{border:1px solid var(--line);border-radius:28px;overflow:hidden;min-height:calc(100vh - 36px);box-shadow:0 18px 45px rgba(15,23,42,.08)}
+  nav{bottom:18px;border-radius:0 0 28px 28px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div>
+    <div class="brand">MD <span>FIT</span></div>
+    <div class="tagline">MOVE • TRACK • IMPROVE · V3.2</div>
+  </div>
+  <div class="avatar" id="headerAvatar" onclick="showPage('profilePage')">M</div>
+</header>
+
+<section class="page active" id="homePage">
+  <div class="topline"><h1>Welcome to MD Fit</h1><span class="tag">YOUR JOURNEY</span></div>
+  <div class="hero">
+    <div class="eyebrow">SMALL STEPS. BIG WINS.</div>
+    <h1>Make every<br>move count.</h1>
+    <p>Run, ride, walk and track your progress. Your next personal best starts here.</p>
+    <div class="week-grid">
+      <div class="metric"><b id="sumDistance">0.00 km</b><span>Total distance</span></div>
+      <div class="metric"><b id="sumDuration">0 min</b><span>Moving time</span></div>
+      <div class="metric"><b id="sumActivities">0</b><span>Activities</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><h2>Start an activity</h2><span class="tag" id="gpsBadge">GPS READY</span></div>
+    <div class="activity-types">
+      <button class="type selected" data-type="Run"><strong>🏃</strong>Running</button>
+      <button class="type" data-type="Ride"><strong>🚴</strong>Cycling</button>
+      <button class="type" data-type="Walk"><strong>🚶</strong>Walking</button>
+    </div>
+    <div class="map-wrap">
+      <div class="map-placeholder" id="mapPlaceholder">
+        <div><b>📍 Your route map</b>Allow location access and start an activity to record your route. Internet is needed to load map tiles.</div>
+      </div>
+      <div id="map"></div>
+    </div>
+    <div class="record-number"><b id="distance">0.00</b><span>KILOMETERS</span></div>
+    <div class="three-stats">
+      <div><b id="duration">00:00:00</b><span>Duration</span></div>
+      <div><b id="pace">--:--</b><span>Avg pace / km</span></div>
+      <div><b id="calories">0</b><span>Calories*</span></div>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="startBtn">START ACTIVITY</button>
+      <button class="btn secondary" id="finishBtn" disabled>FINISH & SAVE</button>
+    </div>
+    <p class="disclaimer">GPS tracking requires location permission. Keep the app open while recording. *Calories are rough estimates, not medical measurements.</p>
+  </div>
+
+  <div class="section-title"><h2>Recent activities</h2><button class="text-btn" onclick="showPage('historyPage')">VIEW ALL</button></div>
+  <div id="recentList"><div class="empty">No activities yet. Start your first run, ride or walk!</div></div>
+</section>
+
+<section class="page" id="historyPage">
+  <div class="topline"><h1>Activity history</h1><span class="tag" id="historyTotal">0 SAVED</span></div>
+  <div class="quick-grid" style="margin-bottom:14px">
+    <div class="quick"><div class="emoji">🛣️</div><b id="historyKm">0.00 km</b><span>Total distance</span></div>
+    <div class="quick"><div class="emoji">⏱️</div><b id="historyHours">0 min</b><span>Total moving time</span></div>
+  </div>
+  <div id="historyList"><div class="empty">Your saved activities will appear here.</div></div>
+  <button class="btn secondary" style="width:100%;margin-top:10px" onclick="exportData()">EXPORT ALL DATA (JSON)</button>
+  <button class="btn secondary" style="width:100%;margin-top:8px" onclick="exportLatestGPX()">EXPORT LATEST ROUTE (GPX)</button>
+</section>
+
+<section class="page" id="progressPage">
+  <div class="topline"><h1>Your progress</h1><span class="tag">ALL TIME</span></div>
+  <div class="quick-grid">
+    <div class="quick"><div class="emoji">🏅</div><b id="pActivities">0</b><span>Activities completed</span></div>
+    <div class="quick"><div class="emoji">🌍</div><b id="pDistance">0.00 km</b><span>Distance covered</span></div>
+    <div class="quick"><div class="emoji">🔥</div><b id="pCalories">0</b><span>Estimated calories</span></div>
+    <div class="quick"><div class="emoji">⌚</div><b id="pTime">0 min</b><span>Time in motion</span></div>
+  </div>
+  <div class="card">
+    <div class="cardhead"><h2>Weekly challenge</h2><span class="tag">PERSONAL</span></div>
+    <p class="muted small" style="margin:8px 0 0">Your saved activities this week count toward your personal distance target.</p>
+    <div class="progress-track"><div class="progress-fill" id="challengeBar"></div></div>
+    <div class="row small" style="margin-top:8px;font-weight:700"><span id="challengeText">0.00 / 10 km</span><span class="muted" id="goalLabel">10 km goal</span></div>
+  </div>
+  <div class="card">
+    <div class="cardhead"><h2>Activity breakdown</h2></div>
+    <div id="breakdown" style="margin-top:14px"></div>
+  </div>
+  <div class="card">
+    <div class="cardhead"><h2>Personal bests</h2></div>
+    <div id="bests" style="margin-top:10px"></div>
+  </div>
+</section>
+
+<section class="page" id="profilePage">
+  <div class="topline"><h1>Your profile</h1><span class="tag">ON THIS DEVICE</span></div>
+  <div class="card profilebox">
+    <div class="bigavatar" id="profileAvatar">M</div>
+    <h2 id="profileNameDisplay">MD Fit Athlete</h2>
+    <p>Every step is progress.</p>
+  </div>
+  <div class="card">
+    <div class="cardhead" style="margin-bottom:8px"><h2>Personal details</h2></div>
+    <label for="nameInput">Display name</label>
+    <input class="field" id="nameInput" maxlength="30" placeholder="Enter your name">
+    <label for="weightInput">Weight (kg) — optional, for better estimates</label>
+    <input class="field" id="weightInput" type="number" min="25" max="250" placeholder="e.g. 70">
+    <button class="btn primary" style="width:100%" onclick="saveProfile()">SAVE PROFILE</button>
+  </div>
+  <div class="card">
+    <div class="cardhead"><h2>Data & privacy</h2></div>
+    <p class="muted small" style="margin:8px 0 12px">Your activity history and profile are stored locally on this device. Nothing is uploaded to any server.</p>
+    <button class="btn secondary" style="width:100%" onclick="exportData()">DOWNLOAD BACKUP JSON</button>
+
+    <label for="backupFile" style="margin-top:16px">Restore from a previous MD Fit JSON backup</label>
+    <input class="field" id="backupFile" type="file" accept=".json,application/json">
+    <button class="btn secondary" style="width:100%" onclick="importData()">RESTORE BACKUP</button>
+
+    <label for="weeklyGoal" style="margin-top:16px">Weekly distance goal (km)</label>
+    <input class="field" id="weeklyGoal" type="number" min="1" max="1000" value="10">
+    <button class="btn secondary" style="width:100%" onclick="saveGoal()">SAVE WEEKLY GOAL</button>
+
+    <button class="btn danger" style="width:100%;margin-top:12px" onclick="clearData()">DELETE ALL LOCAL DATA</button>
+  </div>
+</section>
+
+<nav>
+  <button class="active" data-page="homePage">
+    <svg viewBox="0 0 24 24"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg>
+    Home
+  </button>
+  <button data-page="historyPage">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h10M7 13h10M7 17h6"/></svg>
+    History
+  </button>
+  <button data-page="progressPage">
+    <svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
+    Progress
+  </button>
+  <button data-page="profilePage">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 5-6 8-6s6.5 2 8 6"/></svg>
+    Profile
+  </button>
+</nav>
+<div class="toast" id="toast"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const STORE='mdFitActivities_v1',PROFILE='mdFitProfile_v1',GOAL_KEY='mdFitWeeklyGoal_v1';
+let activities=read(STORE,[]),profile=read(PROFILE,{name:'MD Fit Athlete',weight:''});
+let weeklyGoal=Number(localStorage.getItem(GOAL_KEY))||10;
+let selectedType='Run',watchId=null,running=false,paused=false,startTime=0,elapsed=0,timer=null,lastPosition=null,distanceMeters=0,route=[],map=null,routeLine=null,userMarker=null;
+
+function read(k,f){try{return JSON.parse(localStorage.getItem(k))??f}catch(e){return f}}
+function persist(){localStorage.setItem(STORE,JSON.stringify(activities))}
+function toast(s){const t=$('toast');t.textContent=s;t.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display='none',2800)}
+function fmt(s){s=Math.max(0,Math.floor(s));return [Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(n=>String(n).padStart(2,'0')).join(':')}
+function mins(s){return Math.round(s/60)}
+function km(n){return Number(n||0).toFixed(2)}
+function total(field){return activities.reduce((a,x)=>a+(Number(x[field])||0),0)}
+function icon(type){return type==='Run'?'🏃':type==='Ride'?'🚴':'🚶'}
+
+function setGpsBadge(text,isLive=false){
+  const b=$('gpsBadge');
+  b.textContent=text;
+  b.classList.toggle('live',isLive);
+}
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===id));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));
+  window.scrollTo({top:0,behavior:'instant'});
+  if(id==='homePage'&&map)setTimeout(()=>map.invalidateSize(),150);
+  if(id==='progressPage')renderProgress();
+}
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>showPage(b.dataset.page)));
+
+document.querySelectorAll('.type').forEach(b=>b.addEventListener('click',()=>{
+  if(running){toast('Pause or finish the current activity first.');return}
+  document.querySelectorAll('.type').forEach(x=>x.classList.remove('selected'));
+  b.classList.add('selected');
+  selectedType=b.dataset.type;
+  updateRecord();
+}));
+
+function initMap(){
+  if(map||!window.L)return;
+  map=L.map('map',{zoomControl:false}).setView([20.5937,78.9629],5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
+  routeLine=L.polyline([],{color:'#FF5A1F',weight:5,opacity:.95}).addTo(map);
+  $('map').style.display='block';
+  $('mapPlaceholder').style.display='none';
+  setTimeout(()=>map.invalidateSize(),100);
+}
+
+function haversine(a,b){
+  const R=6371000,r=x=>x*Math.PI/180,d1=r(b.lat-a.lat),d2=r(b.lng-a.lng);
+  const q=Math.sin(d1/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(d2/2)**2;
+  return 2*R*Math.asin(Math.sqrt(q));
+}
+
+function caloriesFor(k){
+  const w=Number(profile.weight)||70;
+  const factor=selectedType==='Ride'?0.32:selectedType==='Walk'?0.55:0.9;
+  return Math.round(k*w*factor);
+}
+
+function paceFor(k,sec){
+  if(k<=0.01||sec<=0)return '--:--';
+  const totalSec=Math.round(sec/k);
+  const m=Math.floor(totalSec/60);
+  const s=totalSec%60;
+  return m+':'+String(s).padStart(2,'0');
+}
+
+function updateRecord(){
+  const k=distanceMeters/1000;
+  $('distance').textContent=km(k);
+  $('duration').textContent=fmt(elapsed);
+  $('pace').textContent=paceFor(k,elapsed);
+  $('calories').textContent=caloriesFor(k);
+}
+
+function startTimer(){
+  clearInterval(timer);
+  timer=setInterval(()=>{
+    if(running){
+      elapsed=Math.floor((Date.now()-startTime)/1000);
+      updateRecord();
+    }
+  },1000);
+}
+
+function startTracking(){
+  if(!navigator.geolocation){toast('This device does not support GPS location.');return}
+  if(!window.isSecureContext && location.protocol!=='file:' && location.hostname!=='localhost'){
+    toast('GPS needs HTTPS or an installed Android app.');return;
+  }
+  running=true;paused=false;
+  startTime=Date.now()-elapsed*1000;
+  $('startBtn').textContent='PAUSE ACTIVITY';
+  $('finishBtn').disabled=false;
+  setGpsBadge('FINDING GPS',false);
+  startTimer();
+
+  watchId=navigator.geolocation.watchPosition(pos=>{
+    const c=pos.coords,p={lat:c.latitude,lng:c.longitude,accuracy:c.accuracy,time:pos.timestamp};
+    if(c.accuracy>70){setGpsBadge('LOW GPS ACCURACY',false);return}
+    if(lastPosition){
+      const d=haversine(lastPosition,p);
+      if(d>=2&&d<250){distanceMeters+=d;route.push([p.lat,p.lng])}
+    }else{
+      route.push([p.lat,p.lng]);
+    }
+    lastPosition=p;
+    try{
+      initMap();
+      routeLine.addLatLng([p.lat,p.lng]);
+      if(!userMarker){
+        userMarker=L.circleMarker([p.lat,p.lng],{radius:7,color:'#FFFFFF',weight:3,fillColor:'#FF5A1F',fillOpacity:1}).addTo(map);
+      }else{
+        userMarker.setLatLng([p.lat,p.lng]);
+      }
+      map.setView([p.lat,p.lng],16);
+    }catch(e){}
+    setGpsBadge('GPS ACTIVE',true);
+    updateRecord();
+  },err=>{
+    const m={1:'Location permission denied. Allow location access in app settings.',2:'GPS position unavailable. Try moving outdoors.',3:'GPS request timed out.'};
+    toast(m[err.code]||'GPS error.');
+    setGpsBadge('GPS ISSUE',false);
+  },{enableHighAccuracy:true,maximumAge:1000,timeout:20000});
+}
+
+function pauseTracking(){
+  running=false;paused=true;
+  clearInterval(timer);
+  if(watchId!==null)navigator.geolocation.clearWatch(watchId);
+  watchId=null;
+  $('startBtn').textContent='RESUME ACTIVITY';
+  setGpsBadge('PAUSED',false);
+}
+
+$('startBtn').addEventListener('click',()=>{if(running)pauseTracking();else startTracking()});
+$('finishBtn').addEventListener('click',()=>{
+  if(running)pauseTracking();
+  if(elapsed<5){toast('Record at least 5 seconds before saving.');return}
+  const k=distanceMeters/1000;
+  if(route.length<1){toast('No GPS points recorded. Activity saved with zero distance.')}
+  const w=Number(profile.weight)||70;
+  const cal=Math.round(k*w*(selectedType==='Ride'?0.32:selectedType==='Walk'?0.55:0.9));
+  activities.unshift({id:Date.now(),type:selectedType,distance:k,duration:elapsed,calories:cal,date:new Date().toISOString(),route:route});
+  persist();resetRecorder();renderAll();toast('Activity saved on this device.');
+});
+
+function resetRecorder(){
+  running=false;paused=false;
+  clearInterval(timer);timer=null;
+  elapsed=0;distanceMeters=0;lastPosition=null;route=[];
+  if(watchId!==null&&navigator.geolocation)navigator.geolocation.clearWatch(watchId);
+  watchId=null;
+  $('startBtn').textContent='START ACTIVITY';
+  $('finishBtn').disabled=true;
+  setGpsBadge('GPS READY',false);
+  if(routeLine)routeLine.setLatLngs([]);
+  if(userMarker&&map){map.removeLayer(userMarker);userMarker=null}
+  updateRecord();
+}
+
+function weekStartDate(){
+  const d=new Date();
+  const day=(d.getDay()+6)%7;
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate()-day);
+  return d;
+}
+
+function thisWeekDistance(){
+  const start=weekStartDate().getTime();
+  return activities.filter(a=>new Date(a.date).getTime()>=start).reduce((s,a)=>s+(Number(a.distance)||0),0);
+}
+
+function refreshWeeklyGoal(){
+  const weekly=thisWeekDistance();
+  const pct=Math.min(100,weekly/Math.max(1,weeklyGoal)*100);
+  $('challengeBar').style.width=pct+'%';
+  $('challengeText').textContent=km(weekly)+' / '+weeklyGoal+' km';
+  $('goalLabel').textContent=weeklyGoal+' km goal';
+  $('weeklyGoal').value=weeklyGoal;
+}
+
+function renderActivity(a){
+  const date=new Date(a.date).toLocaleString();
+  const typeLabel=a.type==='Ride'?'Cycling':a.type==='Walk'?'Walking':'Running';
+  return `<div class="activity-item">
+    <div class="act-icon">${icon(a.type)}</div>
+    <div class="act-body"><b>${typeLabel}</b><small>${date} · ${fmt(a.duration)}</small></div>
+    <div style="text-align:right">
+      <div class="act-distance">${km(a.distance)} km</div>
+      <button class="text-btn" style="padding:4px 0 0;color:#EF4444" onclick="deleteActivity(${Number(a.id)})">DELETE</button>
+    </div>
+  </div>`;
+}
+
+function renderAll(){
+  const d=total('distance'),t=total('duration'),cal=total('calories');
+  $('sumDistance').textContent=km(d)+' km';
+  $('sumDuration').textContent=mins(t)+' min';
+  $('sumActivities').textContent=activities.length;
+  $('recentList').innerHTML=activities.length?activities.slice(0,3).map(renderActivity).join(''):'<div class="empty">No activities yet. Start your first run, ride or walk!</div>';
+  $('historyTotal').textContent=activities.length+' SAVED';
+  $('historyKm').textContent=km(d)+' km';
+  $('historyHours').textContent=mins(t)+' min';
+  $('historyList').innerHTML=activities.length?activities.map(renderActivity).join(''):'<div class="empty">Your saved activities will appear here.</div>';
+  $('pActivities').textContent=activities.length;
+  $('pDistance').textContent=km(d)+' km';
+  $('pCalories').textContent=Math.round(cal);
+  $('pTime').textContent=mins(t)+' min';
+  refreshWeeklyGoal();
+  renderProgress();
+  updateRecord();
+}
+
+function renderProgress(){
+  const types=['Run','Ride','Walk'];
+  const totalDist=total('distance');
+  $('breakdown').innerHTML=types.map(type=>{
+    const arr=activities.filter(a=>a.type===type);
+    const dist=arr.reduce((s,a)=>s+(Number(a.distance)||0),0);
+    const pct=totalDist?dist/totalDist*100:0;
+    const label=type==='Ride'?'Cycling':type==='Walk'?'Walking':'Running';
+    return `<div style="margin-bottom:14px">
+      <div class="row small"><b>${icon(type)} ${label}</b><span class="muted">${arr.length} activities · ${km(dist)} km</span></div>
+      <div class="progress-track" style="height:8px;margin-top:7px"><div class="progress-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+  const best=activities.length?Math.max(...activities.map(a=>Number(a.distance)||0)):0;
+  const longest=activities.length?activities.reduce((a,b)=>(Number(a.duration)||0)>(Number(b.duration)||0)?a:b):null;
+  $('bests').innerHTML=`
+    <div class="row small" style="padding:10px 0;border-bottom:1px solid var(--line)"><span class="muted">Longest distance</span><b>${km(best)} km</b></div>
+    <div class="row small" style="padding:10px 0"><span class="muted">Longest duration</span><b>${longest?fmt(longest.duration):'--:--'}</b></div>`;
+}
+
+function saveProfile(){
+  const name=$('nameInput').value.trim()||'MD Fit Athlete';
+  const weight=$('weightInput').value;
+  profile={name,weight};
+  localStorage.setItem(PROFILE,JSON.stringify(profile));
+  applyProfile();
+  toast('Profile saved.');
+}
+
+function applyProfile(){
+  $('nameInput').value=profile.name||'';
+  $('weightInput').value=profile.weight||'';
+  $('profileNameDisplay').textContent=profile.name||'MD Fit Athlete';
+  const ch=(profile.name||'M').trim().charAt(0).toUpperCase();
+  $('profileAvatar').textContent=ch;
+  $('headerAvatar').textContent=ch;
+}
+
+function saveGoal(){
+  const value=Number($('weeklyGoal').value);
+  if(!Number.isFinite(value)||value<1||value>1000){toast('Enter a weekly goal between 1 and 1000 km.');return}
+  weeklyGoal=value;
+  localStorage.setItem(GOAL_KEY,String(value));
+  refreshWeeklyGoal();
+  toast('Weekly goal updated.');
+}
+
+function triggerDownload(content,filename,mime){
+  try{
+    const blob=new Blob([content],{type:mime});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=filename;
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1200);
+    return true;
+  }catch(e){return false}
+}
+
+function exportData(){
+  const payload={app:'MD Fit',version:1,exportedAt:new Date().toISOString(),profile,activities};
+  const ok=triggerDownload(JSON.stringify(payload,null,2),'md-fit-backup-'+new Date().toISOString().slice(0,10)+'.json','application/json');
+  toast(ok?'Backup export started.':'Could not export backup on this device.');
+}
+
+function importData(){
+  const file=$('backupFile').files&&$('backupFile').files[0];
+  if(!file){toast('Choose an MD Fit JSON backup file first.');return}
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const data=JSON.parse(reader.result);
+      if(!data||!Array.isArray(data.activities))throw new Error('Invalid backup');
+      if(!confirm('Restore '+data.activities.length+' activities? This will replace the activities currently stored on this device.'))return;
+      activities=data.activities.filter(a=>
+        a&&['Run','Ride','Walk'].includes(a.type)&&
+        Number.isFinite(Number(a.distance))&&
+        Number.isFinite(Number(a.duration))&&a.date
+      ).map(a=>({
+        id:Number(a.id)||Date.now()+Math.random(),
+        type:a.type,
+        distance:Math.max(0,Number(a.distance)),
+        duration:Math.max(0,Number(a.duration)),
+        calories:Math.max(0,Number(a.calories)||0),
+        date:new Date(a.date).toISOString(),
+        route:Array.isArray(a.route)?a.route.filter(p=>Array.isArray(p)&&p.length>=2&&Number.isFinite(Number(p[0]))&&Number.isFinite(Number(p[1]))):[]
+      }));
+      if(data.profile&&typeof data.profile==='object'){
+        profile={name:String(data.profile.name||'MD Fit Athlete').slice(0,30),weight:data.profile.weight||''};
+        localStorage.setItem(PROFILE,JSON.stringify(profile));
+        applyProfile();
+      }
+      persist();renderAll();
+      toast('Backup restored successfully.');
+      $('backupFile').value='';
+    }catch(e){
+      toast('Could not read this backup. Please select a valid MD Fit JSON file.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function exportLatestGPX(){
+  if(!activities.length){toast('No saved activity to export.');return}
+  const a=activities[0];
+  const points=Array.isArray(a.route)?a.route:[];
+  if(!points.length){toast('The latest activity has no GPS route points.');return}
+  const esc=s=>String(s).replace(/[<>&'"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c]));
+  const trkpts=points.map(p=>`<trkpt lat="${Number(p[0])}" lon="${Number(p[1])}"></trkpt>`).join('');
+  const gpx=`<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="MD Fit" xmlns="http://www.topografix.com/GPX/1/1">\n<trk><name>${esc(a.type)} - MD Fit</name><trkseg>${trkpts}</trkseg></trk></gpx>`;
+  const ok=triggerDownload(gpx,'md-fit-route-'+new Date(a.date).toISOString().slice(0,10)+'.gpx','application/gpx+xml');
+  toast(ok?'GPX route export started.':'Could not export GPX on this device.');
+}
+
+function deleteActivity(id){
+  if(!confirm('Delete this activity from this device?'))return;
+  activities=activities.filter(a=>Number(a.id)!==Number(id));
+  persist();renderAll();toast('Activity deleted.');
+}
+
+function clearData(){
+  if(!confirm('Delete all saved MD Fit activities and profile from this device? This cannot be undone.'))return;
+  activities=[];profile={name:'MD Fit Athlete',weight:''};
+  persist();localStorage.removeItem(PROFILE);
+  applyProfile();renderAll();toast('Local data cleared.');
+}
+
+applyProfile();
+renderAll();
+</script>
+</body>
+</html>
