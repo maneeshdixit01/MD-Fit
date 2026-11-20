@@ -1,6 +1,0 @@
-Foreground GPS service files:
-- native/android/app/src/main/java/com/mdfit/activitytracker/ActivityLocationService.java
-- native/android/app/src/main/java/com/mdfit/activitytracker/BackgroundLocationPlugin.java
-- native/android/MainActivity.java
-- scripts/prepare-android.py copies sources and adds manifest declarations after `npx cap add android`.
-Start from visible app UI; no ACCESS_BACKGROUND_LOCATION is requested.
